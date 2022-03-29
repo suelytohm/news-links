@@ -6,6 +6,10 @@ const bodyParser = require('body-parser')
 const port = process.env.PORT || 3000;
 
 
+let Parser = require('rss-parser');
+let parser = new Parser();
+let conteudo = "";
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
@@ -31,34 +35,55 @@ app.get('/api/hoje', async(req, res) => {
 })
 
 
+app.get('/api/atualizar', async(req, res) => {
+    atualizar()
+    res.json({"status": "ok"})
+})
 
 
-async function buscarNoticias() {
 
-    let feed = await parser.parseURL('https://g1.globo.com/rss/g1/economia/')
 
-    console.log(feed);
-  
+async function atualizar(){
+
+    let feed = await parser.parseURL('https://g1.globo.com/rss/g1/economia/');
+
+
     feed.items.forEach(item => {
-        // console.log(item.title + ' - ' + item.link)
-    });
 
-    return feed
+        let img = item.content.slice(item.content.indexOf('<img src="'),item.content.indexOf(">") -3)
+        
+        if(img.length > 0){
+            conteudo = conteudo + item.title + ' - ' +  img + "\n\r"
+            // salvarNoticia("Economia", item.title, img, item.link)
+            img = img.replace('<img src="', "")
+            salvarNoticia("Economia", item.title, img, item.link)    
+        }
 
-
+        else{
+            conteudo = conteudo + item.title + "\n\r"
+            salvarNoticia("Economia", item.title, "", item.link)
+        }
+    });    
 }
-
-
 
 
 
 function pegarNoticias(){
-    return connectionBanco("SELECT * FROM news WHERE visivel = 'S' and dataPostagem = curdate() ORDER BY id DESC;")
+
+    try {
+        return connectionBanco("SELECT * FROM news WHERE visivel = 'S' and dataPostagem = curdate() ORDER BY id DESC;")
+    } catch (error) {
+        
+    }
 }
 
 
 function salvarNoticia(categoria, titulo, capa, link){
-    return connectionBanco(`INSERT INTO news (categoria, titulo, capa, link, dataPostagem) VALUES ('${categoria}', '${titulo}', '${capa}', '${link}', CURDATE());`)
+    try {
+        return connectionBanco(`INSERT INTO news (categoria, titulo, capa, link, dataPostagem) VALUES ('${categoria}', '${titulo}', '${capa}', '${link}', CURDATE());`)
+    } catch (error) {
+        
+    }
 }
 
 
